@@ -10,16 +10,14 @@ var config = {
 firebase.initializeApp(config);
 console.log(firebase);
 
-var database = firebase.database(config);
+var database = firebase.database();
 var ref = database.ref
 
-// Trying to remove "development build" error....
-import firebase from 'firebase/app';
-import 'firebase/database'; // If using Firebase database
-import 'firebase/storage';  // If using Firebase storage
+
 
 // Create Button to add train info
-$("#submitBtn").on("click", function() {
+$("#submitBtn").on("click", function(e) {
+  e.preventDefault();
   var train = $("#trainAdd").val().trim();
   var destination = $("#destinationAdd").val().trim();
   var firstTrainTime = moment($("#timeAdd").val().trim(), "HH:mm").format("HH:mm");
@@ -36,40 +34,40 @@ $("#submitBtn").on("click", function() {
   // push data to firebase
   database.ref().push(trainSubmitted);
   console.log(trainSubmitted.nameEntry)
-  $("#trainAdd").val("").trim();
-  $("#destinationAdd").val("").trim();
-  $("#timeAdd").val("").trim();
+  $("#trainAdd").val("");
+  $("#destinationAdd").val("");
+  $("#timeAdd").val("");
   $("#frequencyAdd").val("");
 
   return false;
 })
 
-// HAVE SNAPSHOTS OF SUBMITTED DATA BE PUSHED TO FIREBASE VIA THIS FUNCTION
-database.ref().on("data_added", function (dataSnapshot){
+// HAVE SNAPSHOTS OF SUBMITTED DATA BE PUSHED TO FIREBASE 
+database.ref().on("child_added", function (dataSnapshot){
   var train = dataSnapshot.val().nameEntry;
   var destination = dataSnapshot.val().destinationEntry;
   var firstTrainTime = dataSnapshot.val().timeEntry;
-  var frequency = dataSnapshot.val().frequencyEntry;
+  var frequencyData = dataSnapshot.val().frequencyEntry;
 
-  // var to always set first train time before current time
-  var beforeCurrentTime = moment(firstTrainTime, 'HH:mm');
-  console.log(beforeCurrentTime);
-  var currentTime = moment().format("HH:mm");
-  console.log("CURRENT TIME" + currentTime)
-
-  // CALCULATE TIME UNTIL NEXT TRAIN
-
-  // get difference between currentTime and firstTrainData
-  var timeDifference = moment().diff(moment(beforeCurrentTime), "minutes");
-  console.log(firstTrainTime);
-  console.log("Difference = " + timeDifference);
-
-  // remainder 
-  var remainder = timeDifference % frequencyData;
-  console.log(remainder);
-
-  // mins until next train
-  var nextTrainTime = frequencyData - remainder
-  var nextTrain = moment().add(nextTrainTime, "minutes").format("HH:mm");
-  $("#timetable>tbody").append("<tr><td>" + train + "<tr><td>" + destination + "<tr><td>" + nextTrain + "<tr><td>" + frequency + "<tr><td>" + nextTrainTime + "<tr><td>");
+  var tFrequency = frequencyData;
+    // Time is 3:30 AM
+    var firstTime = firstTrainTime;
+    // First Time (pushed back 1 year to make sure it comes before current time)
+    var firstTimeConverted = moment(firstTime, "HH:mm").subtract(1, "years");
+    console.log(firstTimeConverted);
+    // Current Time
+    var currentTime = moment();
+    console.log("CURRENT TIME: " + moment(currentTime).format("hh:mm"));
+    // Difference between the times
+    var diffTime = moment().diff(moment(firstTimeConverted), "minutes");
+    console.log("DIFFERENCE IN TIME: " + diffTime);
+    // Time apart (remainder)
+    var tRemainder = diffTime % tFrequency;
+    console.log(tRemainder);
+    // Minute Until Train
+    var tMinutesTillTrain = tFrequency - tRemainder;
+    console.log("MINUTES TILL TRAIN: " + tMinutesTillTrain);
+    // Next Train
+    var nextTrain = moment().add(tMinutesTillTrain, "minutes").format("hh:mm")
+  $("#timetable>tbody").append("<tr><td>" + train + "</td><td>" + destination + "</td><td>" + tFrequency + "</td><td>" + nextTrain + "</td><td>" + tMinutesTillTrain + "</td><tr>");
 })
